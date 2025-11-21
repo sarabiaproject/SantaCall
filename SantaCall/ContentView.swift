@@ -1,24 +1,36 @@
-//
-//  ContentView.swift
-//  SantaCall
-//
-//  Created by sarabiaops on 20/11/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var profileManager: ProfileManager
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if authManager.isAuthenticated {
+                if let profile = profileManager.profile, profile.isComplete {
+                    HomeView()
+                } else {
+                    ProfileSetupView()
+                }
+            } else {
+                LoginView()
+            }
         }
-        .padding()
+        .onAppear {
+            if authManager.isAuthenticated {
+                Task {
+                    await profileManager.fetchProfile()
+                }
+            }
+        }
+        .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+            if isAuthenticated {
+                Task {
+                    await profileManager.fetchProfile()
+                }
+            } else {
+                profileManager.profile = nil
+            }
+        }
     }
-}
-
-#Preview {
-    ContentView()
 }
